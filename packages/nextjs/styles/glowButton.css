@@ -1,0 +1,23 @@
+.glow {
+  box-shadow: 0 0 8px rgba(157, 127, 234, 0.4);
+  transition: all 0.1s ease;
+}
+
+.glow-on-hover:not(:disabled):hover,
+.glow-on-hover:not(:disabled):focus {
+  box-shadow: 0 0 15px rgba(157, 127, 234, 0.6), 0 0 25px rgba(157, 127, 234, 0.4);
+  background-color: #424242;
+  transform: translateY(-1px);
+}
+
+.glow-on-hover:not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: 0 0 10px rgba(157, 127, 234, 0.5);
+  background-color: #383838;
+}
+
+.glow-on-hover:disabled {
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}

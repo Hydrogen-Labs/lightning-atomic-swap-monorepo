@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Yarn package manager
+
+Always use yarn when trying to install new pacakges

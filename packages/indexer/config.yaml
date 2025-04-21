@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: indexer
+networks:
+  - id: 3636
+    rpc_config:
+      url: https://node.botanixlabs.dev
+    start_block: 1813766
+    contracts:
+      - name: HashedTimeLock
+        address:
+          - 0xeCB1B35da47D2C9DBfD08158637AB1E176779c35
+        handler: src/EventHandlers.ts
+        events:
+          - event: LogHTLCNew(bytes32 indexed contractId, address indexed sender, address indexed receiver, uint256 amount, bytes32 hashlock, uint256 timelock)
+            field_selection:
+              transaction_fields:
+                - "hash"
+          - event: LogHTLCRefund(bytes32 indexed contractId)
+            field_selection:
+              transaction_fields:
+                - "hash"
+          - event: LogHTLCWithdraw(bytes32 indexed contractId)
+            field_selection:
+              transaction_fields:
+                - "hash"

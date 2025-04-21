@@ -1,0 +1,25 @@
+type HashedTimeLock_LogHTLCNew {
+  id: ID!
+  contractId: String!
+  sender: String!
+  receiver: String!
+  amount: BigInt!
+  hashlock: String!
+  timelock: BigInt!
+  timestamp: BigInt!
+  txHash: String!
+}
+
+type HashedTimeLock_LogHTLCRefund {
+  id: ID!
+  contractId: String!
+  timestamp: BigInt!
+  txHash: String!
+}
+
+type HashedTimeLock_LogHTLCWithdraw {
+  id: ID!
+  contractId: String!
+  timestamp: BigInt!
+  txHash: String!
+}
