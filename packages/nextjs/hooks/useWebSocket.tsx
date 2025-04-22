@@ -63,7 +63,12 @@ export const useWebSocket = (url: string) => {
           return;
         }
         if (responseData && "status" in responseData) {
-          setData(responseData);
+          // Special handling for the "Invoice withdrawn successfully" message
+          if (responseData.status === "success" && responseData.message === "Invoice withdrawn successfully.") {
+            console.log("Setting success response for invoice withdrawal");
+          }
+          // Pass through all status responses
+          setData(responseData as InvoiceResponse);
           return;
         }
         if (responseData && "contractId" in responseData) {
