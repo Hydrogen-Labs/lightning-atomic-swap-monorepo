@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { KIND } from "@lightning-evm-bridge/shared";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { PaymentRequestObject, decode } from "bolt11";
-import { useWalletClient } from "wagmi";
+import { useWaitForTransaction, useWalletClient } from "wagmi";
 import { PaymentInvoice } from "~~/components/PaymentInvoice";
 import { useLightningApp } from "~~/hooks/LightningProvider";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
@@ -19,22 +20,31 @@ type SendModalProps = {
 };
 
 function SendModal({ isOpen, onClose, balance }: SendModalProps) {
-  const { account } = useGlobalState();
-  const { addTransaction, transactions } = useLightningApp();
+  const { transactions, sendMessage, data } = useLightningApp();
+  const { setDbUpdated } = useGlobalState();
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
   const [invoice, setInvoice] = useState<string>("");
   const lnInvoiceRef = useRef<LnPaymentInvoice | null>(null);
   const [contractId, setContractId] = useState<string | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   function cleanAndClose() {
-    lnInvoiceRef.current = null;
+    if (!processingPayment) {
+      lnInvoiceRef.current = null;
+      setTxHash(undefined);
+    }
+
     setInvoice("");
     setContractId(null);
     setActiveStep(1);
+
+    setTimeout(() => {
+      setDbUpdated(true);
+    }, 2000);
     onClose();
   }
 
   useEffect(() => {
-    // check if the latest transaction has a contractId then update the active step to 3
     if (transactions.length === 0) return;
     const lastTransaction = transactions[0];
     if (lastTransaction.lnInvoice !== lnInvoiceRef.current?.lnInvoice) return;
@@ -43,13 +53,68 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
     }
     if (lastTransaction.status === "COMPLETED") {
       setActiveStep(4);
-      cleanAndClose();
+      setProcessingPayment(false);
+
+      notification.success("Payment completed successfully!");
+
+      setTimeout(() => {
+        setDbUpdated(true);
+      }, 2000);
+
+      if (isOpen) {
+        setTimeout(() => {
+          cleanAndClose();
+        }, 1500);
+      } else {
+        lnInvoiceRef.current = null;
+        setTxHash(undefined);
+      }
     }
     if (lastTransaction.status === "FAILED") {
       setActiveStep(4);
-      cleanAndClose();
+      setProcessingPayment(false);
+
+      notification.error("Payment failed");
+
+      setTimeout(() => {
+        setDbUpdated(true);
+      }, 2000);
+
+      if (isOpen) {
+        setTimeout(() => {
+          cleanAndClose();
+        }, 1500);
+      } else {
+        lnInvoiceRef.current = null;
+        setTxHash(undefined);
+      }
     }
-  }, [transactions]);
+  }, [transactions, isOpen]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    if (data.status === "success" && data.message === "Invoice withdrawn successfully.") {
+      console.log("Received invoice withdrawn success message");
+      setActiveStep(4);
+      setProcessingPayment(false);
+
+      notification.success("Payment completed successfully!");
+
+      setTimeout(() => {
+        setDbUpdated(true);
+      }, 2000);
+
+      if (isOpen) {
+        setTimeout(() => {
+          cleanAndClose();
+        }, 1500);
+      } else {
+        lnInvoiceRef.current = null;
+        setTxHash(undefined);
+      }
+    }
+  }, [data, isOpen]);
 
   const { data: walletClient } = useWalletClient();
   const { data: htlcContract } = useScaffoldContract({
@@ -73,7 +138,6 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
   }
 
   function getPaymentHash(requestObject: PaymentRequestObject): `0x${string}` | undefined {
-    // go through the tags and find the 'payment_hash' tagName and return the 'data'
     const paymentHash = requestObject.tags.find((tag: any) => tag.tagName === "payment_hash");
     if (!paymentHash) {
       return undefined;
@@ -85,6 +149,9 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
     console.log("submitting payment");
     if (!htlcContract) return;
     if (!lnInvoiceRef.current) return;
+
+    setProcessingPayment(true);
+
     htlcContract.write
       .newContract(
         [
@@ -97,26 +164,45 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
         },
       )
       .then(tx => {
-        console.log("txHash", tx);
-        addTransaction({
-          status: "PENDING",
-          date: new Date().toISOString(), // Use ISO string for consistency
-          amount: lnInvoiceRef.current ? lnInvoiceRef.current.satoshis : 0,
-          txHash: tx,
-          contractId: contractId || "",
-          hashLockTimestamp: lnInvoiceRef.current ? lnInvoiceRef.current.timeExpireDate : 0,
-          lnInvoice: lnInvoiceRef.current ? lnInvoiceRef.current.lnInvoice : "",
-          userAddress: account ?? "",
-          transactionType: "SENT",
-        });
+        console.log("then txHash", tx);
         setActiveStep(2);
+        setTxHash(tx);
       })
       .catch(e => {
         console.error(e.message);
         notification.error("User rejected transaction");
+        setProcessingPayment(false);
+
+        setTimeout(() => {
+          setDbUpdated(true);
+        }, 2000);
+
         cleanAndClose();
       });
   }
+
+  useWaitForTransaction({
+    hash: txHash,
+    onSuccess: receipt => {
+      console.log("Transaction receipt:", receipt);
+      if (receipt.logs.length >= 0) {
+        const contractId = receipt.logs[0].topics[1];
+        console.log("Contract ID from receipt:", contractId);
+        setActiveStep(3);
+
+        setTimeout(() => {
+          setDbUpdated(true);
+        }, 2000);
+
+        sendMessage({
+          contractId: contractId as string,
+          kind: KIND.INVOICE_SEND,
+          lnInvoice: lnInvoiceRef.current?.lnInvoice as string,
+          txHash: txHash as string,
+        });
+      }
+    },
+  });
 
   function handleInvoiceChange(invoice: string) {
     try {

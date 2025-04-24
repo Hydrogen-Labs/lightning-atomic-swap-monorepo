@@ -1,4 +1,5 @@
 import React from "react";
+import GitHub from "/public/svg/socials/github.svg";
 import Globe from "/public/svg/socials/globe.svg";
 import Twitter from "/public/svg/socials/x.svg";
 import { useGlobalState } from "~~/services/store/store";
@@ -27,7 +28,7 @@ export const Footer = () => {
                   href="https://hydrogenlabs.xyz"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="fill-neutral-content hover:fill-warning flex justify-center items-center"
+                  className="fill-neutral-content hover:fill-warning flex justify-center items-center transition-colors duration-200"
                 >
                   <Globe style={{ width: "20px", height: "20px" }} />
                 </a>
@@ -37,9 +38,19 @@ export const Footer = () => {
                   href="https://x.com/RoverStaking"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="fill-neutral-content hover:fill-warning flex justify-center items-center"
+                  className="fill-neutral-content hover:fill-warning flex justify-center items-center transition-colors duration-200"
                 >
                   <Twitter style={{ width: "20px", hight: "20px" }} />
+                </a>
+              </div>
+              <div className="w-6 h-6 flex justify-center">
+                <a
+                  href="https://github.com/Hydrogen-Labs/lightning-atomic-swap-monorepo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="fill-neutral-content hover:fill-warning flex justify-center items-center transition-colors duration-200"
+                >
+                  <GitHub style={{ width: "20px", height: "20px" }} />
                 </a>
               </div>
             </div>

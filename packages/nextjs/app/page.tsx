@@ -1,22 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "../styles/bg.css";
 import "../styles/glowButton.css";
 import { useAccount } from "wagmi";
 import { HistoryTable } from "~~/components/HistoryTable";
-import RecieveModal from "~~/components/RecieveModalPopup";
+import ReceiveModal from "~~/components/ReceiveModalPopup";
 import SendModalPopup from "~~/components/SendModalPopup";
 import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useLightningApp } from "~~/hooks/LightningProvider";
 import { useAccountBalance } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
+import { notification } from "~~/utils/scaffold-eth/notification";
 
 const Home = () => {
   const { account } = useGlobalState();
   const { address } = useAccount();
   const { balance } = useAccountBalance(address);
-  const { isWebSocketConnected, price } = useLightningApp();
+  const { isWebSocketConnected, price, transactions } = useLightningApp();
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const onCloseSendModal = () => setIsSendModalOpen(false);
   const onOpenSendModal = () => setIsSendModalOpen(true);
@@ -24,6 +25,59 @@ const Home = () => {
   const onCloseReceiveModal = () => setIsReceiveModalOpen(false);
   const onOpenReceiveModal = () => setIsReceiveModalOpen(true);
   const [balanceVisibility, setBalanceVisibility] = useState(0);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [animationText, setAnimationText] = useState("");
+  const [animationType, setAnimationType] = useState("");
+  const previousBalanceRef = useRef(balance);
+  const previousTransactionsRef = useRef(transactions);
+  const { setDbUpdated } = useGlobalState();
+
+  // Monitor transactions for status changes even when modals are closed
+  useEffect(() => {
+    if (previousTransactionsRef.current.length === 0 || transactions.length === 0) {
+      previousTransactionsRef.current = transactions;
+      return;
+    }
+
+    // Check if any transaction has changed status
+    for (const transaction of transactions) {
+      const prevTransaction = previousTransactionsRef.current.find(t => t.contractId === transaction.contractId);
+
+      if (prevTransaction && prevTransaction.status !== transaction.status) {
+        // A transaction's status has changed
+        if (transaction.status === "COMPLETED") {
+          // Show notification for completed transaction
+          notification.success(
+            `${transaction.transactionType === "SENT" ? "Payment" : "Receipt"} completed successfully!`,
+          );
+        } else if (transaction.status === "FAILED") {
+          // Show notification for failed transaction
+          notification.error(`${transaction.transactionType === "SENT" ? "Payment" : "Receipt"} failed`);
+        }
+      }
+    }
+
+    previousTransactionsRef.current = transactions;
+  }, [transactions]);
+
+  useEffect(() => {
+    if (previousBalanceRef.current !== null && balance !== null && previousBalanceRef.current !== balance) {
+      const diff = balance - previousBalanceRef.current;
+      if (diff !== 0) {
+        const diffSats = Math.floor(Math.abs(diff) * 100_000_000);
+        const text = `${diff > 0 ? "+" : "-"} ${diffSats.toLocaleString()} sats`;
+        setAnimationText(text);
+        setAnimationType(diff > 0 ? "increase" : "decrease");
+        setShowAnimation(true);
+
+        setTimeout(() => {
+          setDbUpdated(true);
+          setShowAnimation(false);
+        }, 2000);
+      }
+    }
+    previousBalanceRef.current = balance;
+  }, [balance, setDbUpdated]);
 
   function getBalanceWithVisibility() {
     if (balance === null) return "Loading Balance...";
@@ -46,7 +100,7 @@ const Home = () => {
       <div className="font-plex container mx-auto flex h-[calc(100vh-160px)] items-center justify-center py-8">
         <div className="card w-[750px] h-full flex flex-col">
           {account ? (
-            <div className="card-header text-white p-4 flex-shrink-0">
+            <div className="card-header text-white p-4 flex-shrink-0 relative">
               <h1 className="cursor-default text-center text-3xl font-mono mt-10">Balance</h1>
               <h1
                 className="cursor-pointer text-center text-3xl font-mono"
@@ -54,6 +108,16 @@ const Home = () => {
               >
                 {getBalanceWithVisibility()}
               </h1>
+
+              {showAnimation && (
+                <div
+                  className={`absolute left-1/2 transform -translate-x-1/2 text-2xl font-mono animate-fadeInUp ${
+                    animationType === "increase" ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {animationText}
+                </div>
+              )}
             </div>
           ) : (
             <div className="card-header text-center text-white p-4 flex-shrink-0">
@@ -107,7 +171,7 @@ const Home = () => {
         </div>
 
         <SendModalPopup isOpen={isSendModalOpen} onClose={onCloseSendModal} balance={balance} />
-        <RecieveModal isOpen={isReceiveModalOpen} onClose={onCloseReceiveModal} />
+        <ReceiveModal isOpen={isReceiveModalOpen} onClose={onCloseReceiveModal} />
       </div>
     </>
   );

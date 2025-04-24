@@ -57,16 +57,6 @@ export const HeaderMenuLinks = () => {
  */
 export const Header = () => {
   const { isWebSocketConnected, reconnect, lspStatus } = useLightningApp();
-  // function getColorFromStatus(status: ServerStatus) {
-  //   switch (status) {
-  //     case ServerStatus.ACTIVE:
-  //       return "bg-success";
-  //     case ServerStatus.INACTIVE:
-  //       return "bg-error";
-  //     case ServerStatus.MOCK:
-  //       return "bg-warning";
-  //   }
-  // }
 
   function getTooltipFromStatus(status: ServerStatus) {
     switch (status) {
@@ -80,16 +70,18 @@ export const Header = () => {
   }
 
   return (
-    <div className="sticky font-mono lg:static top-0 navbar bg-base-100 min-h-0 flex-shrink-0 justify-between z-20 px-0 sm:px-2 ">
+    <div className="sticky font-mono lg:static top-0 navbar bg-base-100/70 backdrop-blur-md min-h-0 flex-shrink-0 justify-between z-20 px-0 sm:px-2 border-b border-base-200/30">
       <div className="navbar-start w-auto lg:w-1/2">
-        <Link color={"white"} href="/" passHref className="hidden lg:flex items-center gap-2 ml-4 mr-6 shrink-0">
+        <Link color={"white"} href="/" passHref className="flex items-center gap-2 ml-4 mr-6 shrink-0">
           <Image src="/logo.svg" alt="Botanix Logo" width={"24"} height={"24"} />
-          <div className="flex flex-col font-bold text-white">Botanix {"<>"} Lightning </div>
+          <div className="flex flex-col font-bold text-white text-xs sm:text-sm md:text-base">
+            Botanix {"<>"} Lightning{" "}
+          </div>
         </Link>
       </div>
       <div className="navbar-end flex-grow mr-4">
         <button
-          className="btn btn-ghost btn-sm text-white font-plex hover:bg-transparent hover:cursor-default"
+          className="btn btn-ghost btn-sm text-white font-plex hover:bg-transparent hover:bg-base-300/20 hover:cursor-default hidden md:flex"
           onClick={() => {
             if (!isWebSocketConnected) reconnect();
           }}

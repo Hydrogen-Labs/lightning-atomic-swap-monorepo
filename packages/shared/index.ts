@@ -10,8 +10,8 @@ export type ProviderConfig = {
   sendBasisPointFee: number; // 100 = 1%
   secondsTillInvoiceExpires: number;
   maxLNFee: number;
-  recieveBaseFee: number;
-  recieveBasisPointFee: number;
+  receiveBaseFee: number;
+  receiveBasisPointFee: number;
 };
 
 export type ClientRequest = InvoiceRequest | InitiationRequest | RelayRequest | RelayResponse | TxHashMessage;
@@ -37,7 +37,7 @@ export interface InvoiceRequest {
 }
 
 export interface InitiationRequest {
-  kind: KIND.INITIATION_RECIEVE;
+  kind: KIND.INITIATION_RECEIVE;
   amount: number;
   recipient: string;
   hashlock: string;
@@ -67,7 +67,7 @@ export enum KIND {
   RELAY_REQUEST = "relay_request",
   RELAY_RESPONSE = "relay_response",
   INVOICE_SEND = "invoice_send",
-  INITIATION_RECIEVE = "initiation_recieve",
+  INITIATION_RECEIVE = "initiation_receive",
   HODL_RES = "hodl_res",
   HODL_CONTRACT_RES = "hodl_contract_res",
   TX_HASH = "tx_hash",

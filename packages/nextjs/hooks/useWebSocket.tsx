@@ -18,7 +18,7 @@ export const useWebSocket = (url: string) => {
   const [signerActive, setSignerActive] = useState<boolean>(true);
   const [lnInitationResponse, setLnInitationResponse] = useState<InitiationResponse | null>(null);
   const [hodlInvoiceResponse, setHodlInvoiceResponse] = useState<HodlInvoiceResponse | null>(null);
-  const [recieveContractId, setRecieveContractId] = useState<string>("");
+  const [receiveContractId, setReceiveContractId] = useState<string>("");
   const [isWebSocketConnected, setIsWebSocketConnected] = useState<boolean>(false);
   const reconnectInterval = useRef<NodeJS.Timeout | null>(null);
 
@@ -63,11 +63,16 @@ export const useWebSocket = (url: string) => {
           return;
         }
         if (responseData && "status" in responseData) {
-          setData(responseData);
+          // Special handling for the "Invoice withdrawn successfully" message
+          if (responseData.status === "success" && responseData.message === "Invoice withdrawn successfully.") {
+            console.log("Setting success response for invoice withdrawal");
+          }
+          // Pass through all status responses
+          setData(responseData as InvoiceResponse);
           return;
         }
         if (responseData && "contractId" in responseData) {
-          setRecieveContractId(responseData.contractId);
+          setReceiveContractId(responseData.contractId);
           return;
         }
         if (
@@ -122,7 +127,7 @@ export const useWebSocket = (url: string) => {
     lnInitationResponse,
     uuid,
     signerActive,
-    recieveContractId,
+    receiveContractId: receiveContractId,
     hodlInvoiceResponse,
   };
 };

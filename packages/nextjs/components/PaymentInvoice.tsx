@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo } from "react";
-import { Transaction } from "@lightning-evm-bridge/shared";
 import { useLightningApp } from "~~/hooks/LightningProvider";
 import { LnPaymentInvoice } from "~~/types/utils";
 
