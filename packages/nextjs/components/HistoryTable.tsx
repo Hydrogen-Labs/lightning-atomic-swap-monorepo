@@ -3,6 +3,7 @@ import { gql, useQuery } from "@apollo/client";
 import { Transaction } from "@lightning-evm-bridge/shared";
 import "react-toastify/dist/ReactToastify.css";
 import { useWalletClient } from "wagmi";
+import { useWaitForTransaction } from "wagmi";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { notification } from "~~/utils/scaffold-eth";
@@ -48,6 +49,9 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
   const { data: walletClient } = useWalletClient();
   const [transactionsHT, setTransactionsHT] = useState<Transaction[]>([]);
   const [showReclaimableOnly, setShowReclaimableOnly] = useState<boolean>(false);
+  const [refundTxHash, setRefundTxHash] = useState<`0x${string}` | undefined>(undefined);
+  const [refundingTransactionId, setRefundingTransactionId] = useState<string | null>(null);
+  const [pendingToastId, setPendingToastId] = useState<string | null>(null);
   const { data: htlcContract } = useScaffoldContract({
     contractName: "HashedTimelock",
     walletClient,
@@ -132,10 +136,8 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
 
   const toggleRow = (index: number | null) => {
     setExpandedRow(expandedRow === index ? null : index);
-    console.log("toggleRow", index);
 
     if (index === null) return;
-    console.log(transactionsHT[index]);
   };
 
   // refund transaction if status is expired or failed
@@ -166,6 +168,32 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
     }
   }
 
+  // Add this useWaitForTransaction hook for refund transactions
+  useWaitForTransaction({
+    hash: refundTxHash,
+    onSuccess: receipt => {
+      console.log("Refund transaction receipt:", receipt);
+
+      // Dismiss the pending toast if it exists
+      if (pendingToastId) {
+        notification.remove(pendingToastId);
+        setPendingToastId(null);
+      }
+
+      // Show success notification
+      notification.success("Refund Completed");
+
+      // Update the DB after the transaction is confirmed
+      setTimeout(() => {
+        setDbUpdated(true);
+      }, 2000);
+
+      // Reset the refund transaction hash and refunding status
+      setRefundTxHash(undefined);
+      setRefundingTransactionId(null);
+    },
+  });
+
   function refund(transaction: Transaction) {
     console.log("refunding", transaction);
     console.log("transaction.hashLockTimestamp", transaction.hashLockTimestamp);
@@ -178,15 +206,25 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
     }
     if (!htlcContract) return;
     console.log("refunding", transaction);
+
+    // Set the refunding status before making the contract call
+    setRefundingTransactionId(transaction.contractId);
+
     htlcContract.write
       .refund([transaction.contractId as `0x${string}`], {})
       .then(tx => {
         console.log(tx);
-        notification.success("Refund Completed");
+        setRefundTxHash(tx);
+
+        // Create a persistent loading toast and store its ID
+        const toastId = notification.loading("Refund transaction submitted, waiting for confirmation...");
+        setPendingToastId(toastId);
       })
       .catch(e => {
         console.error(e);
         notification.error("Refund Failed");
+        // Reset refunding status on error
+        setRefundingTransactionId(null);
       });
   }
 
@@ -195,9 +233,18 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
     if (showReclaimableOnly) {
       return [...transactionsHT]
         .filter(tx => tx.transactionType === "SENT" && (tx.status === "EXPIRED" || tx.status === "FAILED"))
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map((tx, filteredIndex) => ({
+          ...tx,
+          originalIndex: transactionsHT.findIndex(original => original.txHash === tx.txHash),
+        }));
     } else {
-      return [...transactionsHT].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      return [...transactionsHT]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map((tx, sortedIndex) => ({
+          ...tx,
+          originalIndex: transactionsHT.findIndex(original => original.txHash === tx.txHash),
+        }));
     }
   };
 
@@ -347,91 +394,149 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
                     {expandedRow === index && (
                       <tr key={transaction.contractId}>
                         <td colSpan={4}>
-                          <div className="p-2 relative">
-                            <div className="flex justify-between items-center">
-                              {transaction.transactionType === "SENT" &&
-                                (transaction.status === "FAILED" || transaction.status === "EXPIRED") && (
-                                  <div>
-                                    TimeLock expiry: {new Date(transaction.hashLockTimestamp * 1000).toLocaleString()}
-                                  </div>
-                                )}
-                              <button
-                                className="btn-neutral absolute right-0 top-1 btn btn-circle btn-sm"
-                                onClick={() => toggleRow(null)}
-                              >
+                          <div className="p-4 relative bg-base-200 rounded-lg border border-neutral">
+                            {/* Header with close button */}
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="text-lg font-semibold">Transaction Details</h3>
+                              <button className="btn btn-circle btn-sm" onClick={() => toggleRow(null)}>
                                 X
                               </button>
                             </div>
-                            {transaction.transactionType === "SENT" && <br />}
-                            <div className="flex justify-start items-center">
-                              <button
-                                className="btn btn-neutral text-white text-xs p-2"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(transaction.txHash);
-                                  console.log("Transaction hash copied to clipboard");
-                                }}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={1.5}
-                                  stroke="currentColor"
-                                  className="w-6 h-6"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
-                                  />
-                                </svg>
-                              </button>
-                              &nbsp; Transaction Hash: {transaction?.txHash?.substring(0, 20)}...
-                            </div>
-                            <br />
-                            <div className="flex justify-start items-center">
-                              <button
-                                className="btn btn-neutral text-white text-xs p-2"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(transaction.contractId);
-                                  console.log("Contract ID copied to clipboard");
-                                }}
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={1.5}
-                                  stroke="currentColor"
-                                  className="w-6 h-6"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
-                                  />
-                                </svg>
-                              </button>
-                              &nbsp; Contract ID: {transaction.contractId.substring(0, 16)}...
-                            </div>
-                            <br />
+
+                            {/* Transaction expiry info */}
                             {transaction.transactionType === "SENT" &&
                               (transaction.status === "FAILED" || transaction.status === "EXPIRED") && (
-                                <div className="flex justify-between items-center">
+                                <div className="bg-red-900/30 p-3 rounded-lg mb-4 text-red-300 font-medium">
+                                  <span className="font-bold">TimeLock expiry:</span>{" "}
+                                  {new Date(transaction.hashLockTimestamp * 1000).toLocaleString()}
+                                </div>
+                              )}
+
+                            {/* Transaction info grid */}
+                            <div className="grid grid-cols-1 gap-3 mb-4">
+                              {/* Transaction Hash */}
+                              <div className="flex items-center bg-neutral/50 p-3 rounded-lg">
+                                <button
+                                  className="btn btn-square btn-sm mr-3"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(transaction.txHash);
+                                    console.log("Transaction hash copied to clipboard");
+                                  }}
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="w-5 h-5"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
+                                    />
+                                  </svg>
+                                </button>
+                                <div>
+                                  <div className="text-xs text-gray-400 font-semibold">Transaction Hash:</div>
+                                  <div className="text-sm">{transaction?.txHash?.substring(0, 20)}...</div>
+                                </div>
+                              </div>
+
+                              {/* Contract ID */}
+                              <div className="flex items-center bg-neutral/50 p-3 rounded-lg">
+                                <button
+                                  className="btn btn-square btn-sm mr-3"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(transaction.contractId);
+                                    console.log("Contract ID copied to clipboard");
+                                  }}
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="w-5 h-5"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
+                                    />
+                                  </svg>
+                                </button>
+                                <div>
+                                  <div className="text-xs text-gray-400 font-semibold">Contract ID:</div>
+                                  <div className="text-sm">{transaction.contractId.substring(0, 20)}...</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Refund button section - only shown for expired or failed SENT transactions */}
+                            {transaction.transactionType === "SENT" &&
+                              (transaction.status === "FAILED" || transaction.status === "EXPIRED") && (
+                                <div className="flex justify-center mt-2">
                                   <button
-                                    className={`btn btn-sm ${
+                                    className={`btn ${
                                       (transaction.status === "FAILED" || transaction.status === "EXPIRED") &&
                                       transaction.hashLockTimestamp < Date.now() / 1000
-                                        ? "btn-neutral"
-                                        : "btn-disabled cursor-not-allowed bg-red-500"
+                                        ? refundingTransactionId === transaction.contractId
+                                          ? "btn-accent btn-md loading"
+                                          : "btn-accent btn-md animate-pulse shadow-md shadow-accent/30"
+                                        : "btn-disabled cursor-not-allowed bg-red-500/50 btn-md"
                                     }`}
-                                    onClick={account ? () => initiateRefund(index) : undefined}
+                                    onClick={account ? () => initiateRefund(transaction.originalIndex) : undefined}
                                     disabled={
-                                      (transaction.status === "FAILED" || transaction.status === "EXPIRED") &&
-                                      transaction.hashLockTimestamp > Date.now() / 1000
+                                      ((transaction.status === "FAILED" || transaction.status === "EXPIRED") &&
+                                        transaction.hashLockTimestamp > Date.now() / 1000) ||
+                                      refundingTransactionId === transaction.contractId
                                     }
                                   >
-                                    Initiate Refund
+                                    {refundingTransactionId === transaction.contractId ? (
+                                      <>
+                                        <span className="loading loading-spinner loading-sm mr-2"></span>
+                                        Processing Refund...
+                                      </>
+                                    ) : transaction.hashLockTimestamp < Date.now() / 1000 ? (
+                                      <>
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={1.5}
+                                          stroke="currentColor"
+                                          className="w-5 h-5 mr-2"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+                                          />
+                                        </svg>
+                                        Initiate Refund
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={1.5}
+                                          stroke="currentColor"
+                                          className="w-5 h-5 mr-2"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                                          />
+                                        </svg>
+                                        Waiting for Expiry
+                                      </>
+                                    )}
                                   </button>
                                 </div>
                               )}

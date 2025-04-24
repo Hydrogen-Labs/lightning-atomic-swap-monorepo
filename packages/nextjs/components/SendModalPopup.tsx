@@ -26,12 +26,18 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
   const [invoice, setInvoice] = useState<string>("");
   const lnInvoiceRef = useRef<LnPaymentInvoice | null>(null);
   const [contractId, setContractId] = useState<string | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   function cleanAndClose() {
-    lnInvoiceRef.current = null;
+    if (!processingPayment) {
+      lnInvoiceRef.current = null;
+      setTxHash(undefined);
+    }
+
     setInvoice("");
     setContractId(null);
     setActiveStep(1);
+
     setTimeout(() => {
       setDbUpdated(true);
     }, 2000);
@@ -39,7 +45,6 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
   }
 
   useEffect(() => {
-    // check if the latest transaction has a contractId then update the active step to 3
     if (transactions.length === 0) return;
     const lastTransaction = transactions[0];
     if (lastTransaction.lnInvoice !== lnInvoiceRef.current?.lnInvoice) return;
@@ -48,34 +53,68 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
     }
     if (lastTransaction.status === "COMPLETED") {
       setActiveStep(4);
-      cleanAndClose();
-    }
-    if (lastTransaction.status === "FAILED") {
-      setActiveStep(4);
-      cleanAndClose();
-    }
-  }, [transactions]);
+      setProcessingPayment(false);
 
-  // Direct websocket response handler
-  useEffect(() => {
-    if (!data) return;
-
-    // Check for success message from invoice withdrawal
-    if (data.status === "success" && data.message === "Invoice withdrawn successfully.") {
-      console.log("Received invoice withdrawn success message");
-      setActiveStep(4);
       notification.success("Payment completed successfully!");
 
       setTimeout(() => {
         setDbUpdated(true);
       }, 2000);
 
-      // Delay closing the modal slightly to show the success state
-      setTimeout(() => {
-        cleanAndClose();
-      }, 1500);
+      if (isOpen) {
+        setTimeout(() => {
+          cleanAndClose();
+        }, 1500);
+      } else {
+        lnInvoiceRef.current = null;
+        setTxHash(undefined);
+      }
     }
-  }, [data]);
+    if (lastTransaction.status === "FAILED") {
+      setActiveStep(4);
+      setProcessingPayment(false);
+
+      notification.error("Payment failed");
+
+      setTimeout(() => {
+        setDbUpdated(true);
+      }, 2000);
+
+      if (isOpen) {
+        setTimeout(() => {
+          cleanAndClose();
+        }, 1500);
+      } else {
+        lnInvoiceRef.current = null;
+        setTxHash(undefined);
+      }
+    }
+  }, [transactions, isOpen]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    if (data.status === "success" && data.message === "Invoice withdrawn successfully.") {
+      console.log("Received invoice withdrawn success message");
+      setActiveStep(4);
+      setProcessingPayment(false);
+
+      notification.success("Payment completed successfully!");
+
+      setTimeout(() => {
+        setDbUpdated(true);
+      }, 2000);
+
+      if (isOpen) {
+        setTimeout(() => {
+          cleanAndClose();
+        }, 1500);
+      } else {
+        lnInvoiceRef.current = null;
+        setTxHash(undefined);
+      }
+    }
+  }, [data, isOpen]);
 
   const { data: walletClient } = useWalletClient();
   const { data: htlcContract } = useScaffoldContract({
@@ -99,7 +138,6 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
   }
 
   function getPaymentHash(requestObject: PaymentRequestObject): `0x${string}` | undefined {
-    // go through the tags and find the 'payment_hash' tagName and return the 'data'
     const paymentHash = requestObject.tags.find((tag: any) => tag.tagName === "payment_hash");
     if (!paymentHash) {
       return undefined;
@@ -111,6 +149,8 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
     console.log("submitting payment");
     if (!htlcContract) return;
     if (!lnInvoiceRef.current) return;
+
+    setProcessingPayment(true);
 
     htlcContract.write
       .newContract(
@@ -126,12 +166,12 @@ function SendModal({ isOpen, onClose, balance }: SendModalProps) {
       .then(tx => {
         console.log("then txHash", tx);
         setActiveStep(2);
-
         setTxHash(tx);
       })
       .catch(e => {
         console.error(e.message);
         notification.error("User rejected transaction");
+        setProcessingPayment(false);
 
         setTimeout(() => {
           setDbUpdated(true);

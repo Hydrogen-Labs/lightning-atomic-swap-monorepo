@@ -114,6 +114,14 @@ module.exports = {
       },
       animation: {
         "pulse-fast": "pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        fadeInUp: "fadeInUp 2s forwards",
+      },
+      keyframes: {
+        fadeInUp: {
+          "0%": { opacity: "0", transform: "translateY(20px) translateX(-50%)" },
+          "80%": { opacity: "1", transform: "translateY(-10px) translateX(-50%)" },
+          "100%": { opacity: "0", transform: "translateY(-30px) translateX(-50%)" },
+        },
       },
       height: {
         "full-minus-200": "calc(100vh - 200px)", // Full height minus 200 pixels
