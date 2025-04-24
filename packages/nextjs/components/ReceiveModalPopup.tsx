@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Step1 } from "./recieve-steps/Step1";
-import { Step2 } from "./recieve-steps/Step2";
-import { Step3 } from "./recieve-steps/Step3";
+import { Step1 } from "./receive-steps/Step1";
+import { Step2 } from "./receive-steps/Step2";
+import { Step3 } from "./receive-steps/Step3";
 import {
   InitiationRequest,
   KIND,
@@ -23,19 +23,19 @@ import { useGlobalState } from "~~/services/store/store";
 import { LnPaymentInvoice } from "~~/types/utils";
 import { notification } from "~~/utils/scaffold-eth";
 
-type RecieveModalProps = {
+type ReceiveModalProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
+function ReceiveModal({ isOpen, onClose }: ReceiveModalProps) {
   const {
     sendMessage,
     lnInitationResponse,
     hashLock,
     hodlInvoiceResponse,
     setHashLock,
-    recieveContractId,
+    receiveContractId,
     signerActive,
   } = useLightningApp();
   const [invoice, setInvoice] = useState<string>("");
@@ -58,7 +58,7 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
     // send a request to the relayer to get the contract details
     const msg: RelayRequest = {
       kind: KIND.RELAY_REQUEST,
-      contractId: recieveContractId,
+      contractId: receiveContractId,
       preimage: hashLock?.secret ?? "",
     };
 
@@ -96,7 +96,7 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
   }, [walletClient?.account.address, account]);
 
   useEffect(() => {
-    if (recieveContractId === "") {
+    if (receiveContractId === "") {
       return;
     }
     const retryDelay = 5000; // Delay time in milliseconds
@@ -110,14 +110,14 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
       }
       // send a request to the relayer to get the contract details
 
-      if (recieveContractId === "" || !htlcContract || !hashLock) {
+      if (receiveContractId === "" || !htlcContract || !hashLock) {
         return;
       }
 
       console.log("Checking contract details");
 
       try {
-        const response = await htlcContract.read.getContract([`${recieveContractId}` as `0x${string}`]);
+        const response = await htlcContract.read.getContract([`${receiveContractId}` as `0x${string}`]);
         const contractDetails = parseContractDetails(response);
         console.log("Contract Details", contractDetails);
 
@@ -135,10 +135,10 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
         }
 
         const secret = `0x${hashLock.secret}`;
-        console.log("Withdrawing contract", recieveContractId, secret);
+        console.log("Withdrawing contract", receiveContractId, secret);
 
         const txHash = await htlcContract.write.withdraw([
-          `${recieveContractId}` as `0x${string}`,
+          `${receiveContractId}` as `0x${string}`,
           secret as `0x${string}`,
         ]);
         await waitForTransaction({ hash: txHash });
@@ -159,7 +159,7 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
     setTimeout(() => {
       fetchContractDetails();
     }, 5000); // Initial delay before the first attempt
-  }, [recieveContractId]);
+  }, [receiveContractId]);
 
   useEffect(() => {
     if (activeStep === 1 && hodlInvoiceResponse !== null) {
@@ -184,7 +184,7 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
     setHashLock({ secret: secret.toString("hex"), hash });
 
     const msg: InitiationRequest = {
-      kind: KIND.INITIATION_RECIEVE,
+      kind: KIND.INITIATION_RECEIVE,
       amount: Number(amount.toString()),
       recipient: recipientAddress,
       hashlock: hash,
@@ -204,7 +204,7 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
         <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-40 flex justify-center items-center font-mono">
           <div className="card lg:w-1/3 md:w-1/2 w-full bg-base-200 rounded-lg md:h-auto min-w-fit">
             <div className="flex w-full items-center justify-center relative text-white bg-brand-bg pt-4 rounded-t-lg">
-              <span className="">{lnInvoiceRef.current == null ? "Recieve Lightning Payment" : "Review"}</span>
+              <span className="">{lnInvoiceRef.current == null ? "Receive Lightning Payment" : "Review"}</span>
               <button
                 onClick={cleanAndClose}
                 className="btn-neutral absolute right-5 top-1/2 transform -translate-y-2 btn btn-circle btn-sm"
@@ -313,4 +313,4 @@ function RecieveModal({ isOpen, onClose }: RecieveModalProps) {
   );
 }
 
-export default RecieveModal;
+export default ReceiveModal;

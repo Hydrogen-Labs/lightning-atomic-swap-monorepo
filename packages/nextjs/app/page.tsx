@@ -5,7 +5,7 @@ import "../styles/bg.css";
 import "../styles/glowButton.css";
 import { useAccount } from "wagmi";
 import { HistoryTable } from "~~/components/HistoryTable";
-import RecieveModal from "~~/components/RecieveModalPopup";
+import ReceiveModal from "~~/components/ReceiveModalPopup";
 import SendModalPopup from "~~/components/SendModalPopup";
 import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useLightningApp } from "~~/hooks/LightningProvider";
@@ -107,7 +107,7 @@ const Home = () => {
         </div>
 
         <SendModalPopup isOpen={isSendModalOpen} onClose={onCloseSendModal} balance={balance} />
-        <RecieveModal isOpen={isReceiveModalOpen} onClose={onCloseReceiveModal} />
+        <ReceiveModal isOpen={isReceiveModalOpen} onClose={onCloseReceiveModal} />
       </div>
     </>
   );

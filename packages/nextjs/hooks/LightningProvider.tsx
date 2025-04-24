@@ -38,7 +38,7 @@ export type LightningAppContextType = {
   signerActive: boolean;
   hashLock: HashLock | null;
   setHashLock: (hashLock: HashLock) => void;
-  recieveContractId: string;
+  receiveContractId: string;
 };
 
 // Create the context
@@ -57,7 +57,7 @@ export const LightningProvider = ({ children }: { children: React.ReactNode }) =
     reconnect,
     status,
     lnInitationResponse,
-    recieveContractId,
+    receiveContractId,
     hodlInvoiceResponse,
     signerActive,
   } = useWebSocket(process.env.WEBSOCKET_URL ?? "ws://localhost:3003");
@@ -77,7 +77,7 @@ export const LightningProvider = ({ children }: { children: React.ReactNode }) =
         signerActive,
         hashLock,
         setHashLock,
-        recieveContractId,
+        receiveContractId,
       }}
     >
       {children}
