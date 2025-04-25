@@ -19,10 +19,12 @@ const GET_USER_TRANSACTIONS = gql`
     withdrawTransactions: HashedTimeLock_LogHTLCWithdraw {
       id
       contractId
+      txHash
     }
     refundTransactions: HashedTimeLock_LogHTLCRefund {
       id
       contractId
+      txHash
     }
   }
 
@@ -35,6 +37,7 @@ const GET_USER_TRANSACTIONS = gql`
     hashlock
     timelock
     timestamp
+    txHash
   }
 `;
 
@@ -94,12 +97,26 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
     return "pending";
   };
 
+  // Helper function to find related transaction hashes
+  const findRelatedTransactionHash = (contractId: string, data: any) => {
+    // Find withdraw transaction
+    const withdrawTx = data?.withdrawTransactions?.find((tx: any) => tx.contractId === contractId);
+    // Find refund transaction
+    const refundTx = data?.refundTransactions?.find((tx: any) => tx.contractId === contractId);
+
+    return {
+      withdrawTxHash: withdrawTx?.txHash,
+      refundTxHash: refundTx?.txHash,
+    };
+  };
+
   useEffect(() => {
     if (data) {
       // Transform the GraphQL data into the Transaction format
       const allTransactions = [...data.sentTransactions, ...data.receivedTransactions];
       const transformedTransactions = allTransactions.map((htlc: any) => {
         const status = getTransactionStatus(htlc.contractId, data);
+        const relatedTxHashes = findRelatedTransactionHash(htlc.contractId, data);
         const transactionType: "RECEIVED" | "SENT" =
           htlc.sender.toLowerCase() === normalizedAddress ? "SENT" : "RECEIVED";
         return {
@@ -113,12 +130,14 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
             | "EXPIRED",
           date: new Date(Number(htlc.timestamp) * 1000).toISOString(),
           amount: Number(htlc.amount) / 10_000_000_000,
-          txHash: htlc.id,
+          txHash: htlc.txHash || htlc.id,
           contractId: htlc.contractId,
           hashLockTimestamp: Number(htlc.timelock),
           lnInvoice: "", // This will be populated from somewhere else
           userAddress: htlc.sender,
           transactionType,
+          withdrawTxHash: relatedTxHashes.withdrawTxHash,
+          refundTxHash: relatedTxHashes.refundTxHash,
         };
       });
 
@@ -438,9 +457,20 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
                                     />
                                   </svg>
                                 </button>
-                                <div>
-                                  <div className="text-xs text-gray-400 font-semibold">Transaction Hash:</div>
-                                  <div className="text-sm">{transaction?.txHash?.substring(0, 20)}...</div>
+                                <div className="flex-grow">
+                                  <div className="text-xs text-gray-400 font-semibold">Creation Transaction:</div>
+                                  <div className="text-sm flex gap-2 items-center">
+                                    {transaction?.txHash?.substring(0, 20)}...
+                                    <a
+                                      href={`https://3xpl.com/botanix/transaction/${transaction.txHash}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="btn btn-xs btn-secondary"
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      View
+                                    </a>
+                                  </div>
                                 </div>
                               </div>
 
@@ -473,6 +503,92 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
                                   <div className="text-sm">{transaction.contractId.substring(0, 20)}...</div>
                                 </div>
                               </div>
+
+                              {/* Withdraw Transaction Hash - Only show if exists */}
+                              {transaction.withdrawTxHash && (
+                                <div className="flex items-center bg-green-900/30 p-3 rounded-lg">
+                                  <button
+                                    className="btn btn-square btn-sm mr-3"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(transaction.withdrawTxHash || "");
+                                      console.log("Withdraw hash copied to clipboard");
+                                    }}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth={1.5}
+                                      stroke="currentColor"
+                                      className="w-5 h-5"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <div className="flex-grow">
+                                    <div className="text-xs text-gray-400 font-semibold">Withdraw Transaction:</div>
+                                    <div className="text-sm flex gap-2 items-center">
+                                      {transaction.withdrawTxHash?.substring(0, 20)}...
+                                      <a
+                                        href={`https://3xpl.com/botanix/transaction/${transaction.withdrawTxHash}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="btn btn-xs btn-secondary"
+                                        onClick={e => e.stopPropagation()}
+                                      >
+                                        View
+                                      </a>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Refund Transaction Hash - Only show if exists */}
+                              {transaction.refundTxHash && (
+                                <div className="flex items-center bg-amber-900/30 p-3 rounded-lg">
+                                  <button
+                                    className="btn btn-square btn-sm mr-3"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(transaction.refundTxHash || "");
+                                      console.log("Refund hash copied to clipboard");
+                                    }}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      strokeWidth={1.5}
+                                      stroke="currentColor"
+                                      className="w-5 h-5"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5A3.375 3.375 0 0 0 6.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0 0 15 2.25h-1.5a2.251 2.251 0 0 0-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 0 0-9-9Z"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <div className="flex-grow">
+                                    <div className="text-xs text-gray-400 font-semibold">Refund Transaction:</div>
+                                    <div className="text-sm flex gap-2 items-center">
+                                      {transaction.refundTxHash?.substring(0, 20)}...
+                                      <a
+                                        href={`https://3xpl.com/botanix/transaction/${transaction.refundTxHash}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="btn btn-xs btn-secondary"
+                                        onClick={e => e.stopPropagation()}
+                                      >
+                                        View
+                                      </a>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             {/* Refund button section - only shown for expired or failed SENT transactions */}

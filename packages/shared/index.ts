@@ -130,4 +130,6 @@ export type Transaction = {
   lnInvoice: string;
   userAddress: string;
   transactionType: "RECEIVED" | "SENT";
+  withdrawTxHash?: string;
+  refundTxHash?: string;
 };
