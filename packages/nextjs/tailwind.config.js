@@ -115,12 +115,17 @@ module.exports = {
       animation: {
         "pulse-fast": "pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         fadeInUp: "fadeInUp 2s forwards",
+        "pulse-subtle": "pulse-subtle 3s ease-in-out infinite",
       },
       keyframes: {
         fadeInUp: {
           "0%": { opacity: "0", transform: "translateY(20px) translateX(-50%)" },
           "80%": { opacity: "1", transform: "translateY(-10px) translateX(-50%)" },
           "100%": { opacity: "0", transform: "translateY(-30px) translateX(-50%)" },
+        },
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.92", transform: "scale(1.03)" },
         },
       },
       height: {

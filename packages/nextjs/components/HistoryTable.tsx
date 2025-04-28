@@ -62,6 +62,14 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
 
   const normalizedAddress = account ? account.toLowerCase() : "";
 
+  // Clear transactions when account is disconnected
+  useEffect(() => {
+    if (!account) {
+      setTransactionsHT([]);
+      setExpandedRow(null);
+    }
+  }, [account]);
+
   const { loading, error, data, refetch } = useQuery(GET_USER_TRANSACTIONS, {
     variables: { address: normalizedAddress },
     skip: !normalizedAddress || !isWebSocketConnected,
