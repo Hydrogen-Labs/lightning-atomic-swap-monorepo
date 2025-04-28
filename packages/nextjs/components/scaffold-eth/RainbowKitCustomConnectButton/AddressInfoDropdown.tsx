@@ -11,7 +11,6 @@ import {
   DocumentDuplicateIcon,
   QrCodeIcon,
 } from "@heroicons/react/24/outline";
-import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
@@ -54,7 +53,7 @@ export const AddressInfoDropdown = ({
         </summary>
         <ul
           tabIndex={0}
-          className="dropdown-content menu z-[2] p-4 mt-3 shadow-2xl bg-neutral rounded-2xl gap-2 w-64 backdrop-blur-xl bg-opacity-95 border border-neutral-700 ring-1 ring-inset ring-white/10"
+          className="dropdown-content menu z-[99] p-4 mt-3 shadow-2xl bg-neutral rounded-2xl gap-2 w-64 backdrop-blur-xl bg-opacity-95 border border-neutral-700 ring-1 ring-inset ring-white/10"
         >
           <NetworkOptions hidden={!selectingNetwork} />
           <li className={selectingNetwork ? "hidden" : ""}>
@@ -79,15 +78,6 @@ export const AddressInfoDropdown = ({
                 </div>
               </CopyToClipboard>
             )}
-          </li>
-          <li className={selectingNetwork ? "hidden" : ""}>
-            <label
-              htmlFor="qrcode-modal"
-              className="btn-sm !rounded-xl flex gap-3 py-3 px-4 hover:bg-neutral-800/70 transition-colors duration-200"
-            >
-              <QrCodeIcon className="h-5 w-5 text-neutral-300" />
-              <span className="whitespace-nowrap font-medium text-neutral-200">View QR Code</span>
-            </label>
           </li>
           <li className={selectingNetwork ? "hidden" : ""}>
             <button

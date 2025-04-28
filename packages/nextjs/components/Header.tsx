@@ -70,7 +70,7 @@ export const Header = () => {
   }
 
   return (
-    <div className="sticky font-mono lg:static top-0 navbar bg-base-100/70 backdrop-blur-md min-h-0 flex-shrink-0 justify-between z-20 px-0 sm:px-2 border-b border-base-200/30">
+    <div className="sticky font-mono lg:static top-0 navbar bg-base-100/70 backdrop-blur-md min-h-0 flex-shrink-0 justify-between z-50 px-0 sm:px-2 border-b border-base-200/30">
       <div className="navbar-start w-auto lg:w-1/2">
         <Link color={"white"} href="/" passHref className="flex items-center gap-2 ml-4 mr-6 shrink-0">
           <h2 className="text-2xl font-light tracking-tight relative">
@@ -83,7 +83,7 @@ export const Header = () => {
         </Link>
       </div>
       <div className="navbar-end flex-grow mr-4">
-        <button
+        {/* <button
           className="btn btn-ghost btn-sm text-white font-plex hover:bg-transparent hover:bg-base-300/20 hover:cursor-default hidden md:flex"
           onClick={() => {
             if (!isWebSocketConnected) reconnect();
@@ -96,7 +96,7 @@ export const Header = () => {
             data-tip={getTooltipFromStatus(lspStatus)}
           ></div>
           {isWebSocketConnected ? "LSP Connected" : "LSP Disconnected"}
-        </button>
+        </button> */}
         &nbsp;
         <RainbowKitCustomConnectButton />
         <FaucetButton />

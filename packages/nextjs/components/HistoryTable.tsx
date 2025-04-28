@@ -276,7 +276,7 @@ export const HistoryTable = ({ account, isWebSocketConnected }: HistoryTableProp
   };
 
   return (
-    <div className="flex flex-1 justify-center mt-8 overflow-hidden">
+    <div className="flex flex-1 justify-center mt-8 overflow-hidden max-h-[calc(100vh-500px)]">
       <div className="flex justify-center mx-0 w-full md:w-[100%] flex-col flex-1 px-4 md:px-0">
         <div className="flex justify-between items-center mb-4 flex-shrink-0">
           <h2 className="text-center text-xl font-black flex-grow">HISTORY</h2>

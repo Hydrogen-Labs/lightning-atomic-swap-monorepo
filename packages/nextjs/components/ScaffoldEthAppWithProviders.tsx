@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { Toaster } from "react-hot-toast";
 import { WagmiConfig, useAccount } from "wagmi";
@@ -20,6 +20,7 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   const { price } = useLightningApp();
   const { setAccount, setNativeCurrencyPrice } = useGlobalState();
   const { address } = useAccount();
+  const [showHeader, setShowHeader] = useState(false);
 
   useEffect(() => {
     if (price > 0) {
@@ -31,15 +32,27 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (address) {
       setAccount(address);
+      // Add a slight delay before showing the header
+      const timer = setTimeout(() => {
+        setShowHeader(true);
+      }, 150);
+      return () => clearTimeout(timer);
     } else {
       setAccount("");
+      setShowHeader(false);
     }
   }, [address, setAccount]);
 
   return (
     <>
       <div className="flex flex-col min-h-screen font-mono">
-        {address && <Header />}
+        <div
+          className={`transition-opacity duration-300 ${
+            address ? (showHeader ? "opacity-100" : "opacity-0") : "opacity-0"
+          } ${!address && "hidden"} z-50 relative`}
+        >
+          {address && <Header />}
+        </div>
         <main className="relative flex flex-col flex-1">{children}</main>
         <Footer />
       </div>
