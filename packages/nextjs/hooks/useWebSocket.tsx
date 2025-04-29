@@ -23,7 +23,7 @@ export const useWebSocket = (url: string) => {
   const reconnectInterval = useRef<NodeJS.Timeout | null>(null);
 
   const checkAndReconnect = () => {
-    if (!isWebSocketConnected) {
+    if (!isWebSocketConnected && url) {
       console.log("Reconnecting WebSocket...");
       reconnect();
     }
@@ -33,10 +33,16 @@ export const useWebSocket = (url: string) => {
     if (socket.current) {
       socket.current.close();
     }
-    initializeWebSocket();
+    if (url) {
+      initializeWebSocket();
+    }
   };
 
   const initializeWebSocket = () => {
+    if (!url) {
+      return; // Don't initialize WebSocket if URL is empty
+    }
+
     socket.current = new WebSocket(url);
 
     socket.current.onopen = () => {
@@ -95,15 +101,17 @@ export const useWebSocket = (url: string) => {
   };
 
   useEffect(() => {
-    initializeWebSocket();
-    return () => {
-      if (socket.current) {
-        socket.current.close();
-      }
-      if (reconnectInterval.current) {
-        clearInterval(reconnectInterval.current);
-      }
-    };
+    if (url) {
+      initializeWebSocket();
+      return () => {
+        if (socket.current) {
+          socket.current.close();
+        }
+        if (reconnectInterval.current) {
+          clearInterval(reconnectInterval.current);
+        }
+      };
+    }
   }, [url]);
 
   const sendMessage = useCallback(

@@ -28,7 +28,7 @@ export const Footer = () => {
                   href="https://hydrogenlabs.xyz"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="fill-neutral-content hover:fill-warning flex justify-center items-center transition-colors duration-200"
+                  className="fill-gray-400 hover:fill-warning flex justify-center items-center transition-colors duration-200"
                 >
                   <Globe style={{ width: "20px", height: "20px" }} />
                 </a>
@@ -38,7 +38,7 @@ export const Footer = () => {
                   href="https://x.com/RoverStaking"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="fill-neutral-content hover:fill-warning flex justify-center items-center transition-colors duration-200"
+                  className="fill-gray-400 hover:fill-warning flex justify-center items-center transition-colors duration-200"
                 >
                   <Twitter style={{ width: "20px", hight: "20px" }} />
                 </a>
@@ -48,7 +48,7 @@ export const Footer = () => {
                   href="https://github.com/Hydrogen-Labs/lightning-atomic-swap-monorepo"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="fill-neutral-content hover:fill-warning flex justify-center items-center transition-colors duration-200"
+                  className="fill-gray-400 hover:fill-warning flex justify-center items-center transition-colors duration-200"
                 >
                   <GitHub style={{ width: "20px", height: "20px" }} />
                 </a>
@@ -56,15 +56,15 @@ export const Footer = () => {
             </div>
           </div>
           <div className="flex md:hidden mt-5 flex-row items-center justify-center">
-            <span className="text-base text-white font-black cursor-default">
+            <span className="text-base text-gray-400 font-black cursor-default">
               BTC ${formatBTC(nativeCurrencyPrice)}
             </span>
           </div>
-          <div className="flex justify-center m-5 text-[0.5rem] md:text-xs text-white">
+          <div className="flex justify-center m-5 text-[0.5rem] md:text-xs text-gray-400">
             © {currentYear} Hydrogen Labs, Inc. All rights reserved
           </div>
           <div className="hidden md:flex flex-row items-center justify-center">
-            <span className="text-base text-white font-black cursor-default">
+            <span className="text-base text-gray-400 font-black cursor-default">
               BTC ${formatBTC(nativeCurrencyPrice)}
             </span>
           </div>

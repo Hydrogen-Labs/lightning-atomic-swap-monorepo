@@ -44,11 +44,40 @@ export type LightningAppContextType = {
 // Create the context
 const HistoricalTransactionsContext = createContext<LightningAppContextType | undefined>(undefined);
 
+// Default values for context to avoid hydration issues
+const defaultContextValues: LightningAppContextType = {
+  transactions: [],
+  sendMessage: (_message: ClientRequest) => {
+    console.warn("WebSocket not initialized yet");
+  },
+  reconnect: () => {
+    console.warn("WebSocket not initialized yet");
+  },
+  isWebSocketConnected: false,
+  data: null,
+  price: 0,
+  lspStatus: ServerStatus.INACTIVE,
+  lnInitationResponse: null,
+  hodlInvoiceResponse: null,
+  signerActive: false,
+  hashLock: null,
+  setHashLock: (_hashLock: HashLock) => {
+    console.warn("Provider not initialized yet");
+  },
+  receiveContractId: "",
+};
+
 // Provider component
 export const LightningProvider = ({ children }: { children: React.ReactNode }) => {
+  const [mounted, setMounted] = useState(false);
   const price = useNativeCurrencyPrice();
   const [hashLock, setHashLock] = useState<HashLock | null>(null);
   const [transactions, setTransactionsState] = useState<HistoricalTransaction[]>([]);
+
+  // Only initialize WebSocket on the client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     sendMessage,
@@ -60,7 +89,16 @@ export const LightningProvider = ({ children }: { children: React.ReactNode }) =
     receiveContractId,
     hodlInvoiceResponse,
     signerActive,
-  } = useWebSocket(process.env.WEBSOCKET_URL ?? "ws://localhost:3003");
+  } = useWebSocket(mounted ? process.env.WEBSOCKET_URL ?? "ws://localhost:3003" : "");
+
+  // Don't render anything until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <HistoricalTransactionsContext.Provider value={defaultContextValues}>
+        {children}
+      </HistoricalTransactionsContext.Provider>
+    );
+  }
 
   return (
     <HistoricalTransactionsContext.Provider

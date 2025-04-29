@@ -1,6 +1,7 @@
 import { AddressInput, IntegerInput } from "../scaffold-eth";
 import { PaymentRequestObject, decode } from "bolt11";
 import QRCode from "qrcode.react";
+import { isAddress } from "viem";
 
 export function Step1({
   amount,
@@ -46,7 +47,7 @@ export function Step1({
         />
       </div>
       <div className="flex-col">
-        <span className="text-sm text-gray-500">Amount (sats)</span>
+        <span className="text-sm text-gray-500">Amount Receiving (sats)</span>
         <IntegerInput
           value={amount}
           onChange={val => setAmount(BigInt(val))}
@@ -56,9 +57,7 @@ export function Step1({
       </div>
       <button
         className="btn btn-secondary rounded-none w-full"
-        disabled={
-          isGenerateQRDisabled() || recipientAddress === "" || recipientAddress === "0x123...321" || !signerActive
-        }
+        disabled={isGenerateQRDisabled() || recipientAddress === "" || !signerActive || !isAddress(recipientAddress)}
         onClick={() => onClickContinue()}
       >
         Generate Service Fee Invoice

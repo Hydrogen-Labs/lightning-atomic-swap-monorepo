@@ -1,6 +1,7 @@
 "use client";
 
 // @refresh reset
+import dynamic from "next/dynamic";
 import { AddressInfoDropdown } from "./AddressInfoDropdown";
 import { WrongNetworkDropdown } from "./WrongNetworkDropdown";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -12,7 +13,7 @@ import { getBlockExplorerAddressLink } from "~~/utils/scaffold-eth";
 /**
  * Custom Wagmi Connect Button (watch balance + custom design)
  */
-export const RainbowKitCustomConnectButton = () => {
+const RainbowKitCustomConnectButtonContent = () => {
   useAutoConnect();
   const { targetNetwork } = useTargetNetwork();
 
@@ -60,3 +61,10 @@ export const RainbowKitCustomConnectButton = () => {
     </ConnectButton.Custom>
   );
 };
+
+/**
+ * Custom Wagmi Connect Button with client-side only rendering
+ */
+export const RainbowKitCustomConnectButton = dynamic(() => Promise.resolve(RainbowKitCustomConnectButtonContent), {
+  ssr: false,
+});

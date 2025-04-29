@@ -112,7 +112,7 @@ const ConnectedInterface = ({ account }: ConnectedInterfaceProps) => {
         )}
       </div>
 
-      <div className="card-footer flex py-4 justify-between items-center font-mono flex-shrink-0">
+      <div className="card-footer flex py-4 justify-between items-center font-mono flex-shrink-0 ">
         <div className="join w-full px-4 md:px-0">
           <button
             className="btn btn-neutral join-item w-1/2 disabled:opacity-50 glow glow-on-hover outline-none focus:outline-none ring-violet-800 ring-2 ring-offset-2"

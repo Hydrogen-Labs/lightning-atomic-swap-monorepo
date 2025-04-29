@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { Toaster } from "react-hot-toast";
 import { WagmiConfig, useAccount } from "wagmi";
@@ -21,6 +22,12 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   const { setAccount, setNativeCurrencyPrice } = useGlobalState();
   const { address } = useAccount();
   const [showHeader, setShowHeader] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Only run on client-side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (price > 0) {
@@ -46,13 +53,15 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
       <div className="flex flex-col min-h-screen font-mono">
-        <div
-          className={`transition-opacity duration-300 ${
-            address ? (showHeader ? "opacity-100" : "opacity-0") : "opacity-0"
-          } ${!address && "hidden"} z-50 relative`}
-        >
-          {address && <Header />}
-        </div>
+        {mounted && (
+          <div
+            className={`transition-opacity duration-300 ${
+              address ? (showHeader ? "opacity-100" : "opacity-0") : "opacity-0"
+            } ${!address && "hidden"} z-50 relative`}
+          >
+            {address && <Header />}
+          </div>
+        )}
         <main className="relative flex flex-col flex-1">{children}</main>
         <Footer />
       </div>
@@ -61,7 +70,8 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const ScaffoldEthAppWithProviders = ({ children }: { children: React.ReactNode }) => {
+// Use dynamic import for the app with providers
+const ScaffoldEthAppWithProvidersClient = ({ children }: { children: React.ReactNode }) => {
   return (
     <WagmiConfig config={wagmiConfig}>
       <ProgressBar />
@@ -75,3 +85,7 @@ export const ScaffoldEthAppWithProviders = ({ children }: { children: React.Reac
     </WagmiConfig>
   );
 };
+
+export const ScaffoldEthAppWithProviders = dynamic(() => Promise.resolve(ScaffoldEthAppWithProvidersClient), {
+  ssr: false,
+});

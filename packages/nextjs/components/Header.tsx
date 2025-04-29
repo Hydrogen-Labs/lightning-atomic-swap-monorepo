@@ -1,12 +1,11 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ServerStatus } from "@lightning-evm-bridge/shared";
-import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
-import { useLightningApp } from "~~/hooks/LightningProvider";
+import { RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 
 type HeaderMenuLink = {
   label: string;
@@ -52,30 +51,33 @@ export const HeaderMenuLinks = () => {
   );
 };
 
-/**
- * Site header
- */
-export const Header = () => {
-  const { isWebSocketConnected, reconnect, lspStatus } = useLightningApp();
-
-  function getTooltipFromStatus(status: ServerStatus) {
-    switch (status) {
-      case ServerStatus.ACTIVE:
-        return "Server is active";
-      case ServerStatus.INACTIVE:
-        return "Server is inactive";
-      case ServerStatus.MOCK:
-        return "Server is in mock mode, all invoice payments will be mocked by the LSP";
-    }
+function getTooltipFromStatus(status: ServerStatus) {
+  switch (status) {
+    case ServerStatus.ACTIVE:
+      return "Server is active";
+    case ServerStatus.INACTIVE:
+      return "Server is inactive";
+    case ServerStatus.MOCK:
+      return "Server is in mock mode, all invoice payments will be mocked by the LSP";
   }
+}
 
+/**
+ * Site header content
+ */
+const HeaderContent = () => {
   return (
     <div className="sticky font-mono lg:static top-0 navbar bg-base-100/70 backdrop-blur-md min-h-0 flex-shrink-0 justify-between z-50 px-0 sm:px-2 border-b border-base-200/30">
       <div className="navbar-start w-auto lg:w-1/2">
         <Link color={"white"} href="/" passHref className="flex items-center gap-2 ml-4 mr-6 shrink-0">
-          <h2 className="text-2xl font-light tracking-tight relative">
-            <span className="bg-gradient-to-r from-violet-400 to-purple-500 text-transparent bg-clip-text tracking-wide">
+          <h2 className="text-lg sm:text-2xl font-light tracking-tight relative">
+            {/* Desktop title */}
+            <span className="hidden sm:inline bg-gradient-to-r from-violet-400 to-purple-500 text-transparent bg-clip-text tracking-wide">
               Lightning Botanix
+            </span>
+            {/* Mobile title */}
+            <span className="sm:hidden bg-gradient-to-r from-violet-400 to-purple-500 text-transparent bg-clip-text tracking-wide">
+              Lightning
             </span>{" "}
             <span className="font-normal text-white tracking-wide relative">Bridge</span>
             <span className="absolute -inset-1 bg-violet-500/10 blur-xl opacity-30 rounded-lg -z-10"></span>
@@ -83,24 +85,13 @@ export const Header = () => {
         </Link>
       </div>
       <div className="navbar-end flex-grow mr-4">
-        {/* <button
-          className="btn btn-ghost btn-sm text-white font-plex hover:bg-transparent hover:bg-base-300/20 hover:cursor-default hidden md:flex"
-          onClick={() => {
-            if (!isWebSocketConnected) reconnect();
-          }}
-        >
-          <div
-            className={`tooltip tooltip-bottom ${
-              isWebSocketConnected ? "bg-success" : "bg-error"
-            } rounded-full w-2 h-2 self-center`}
-            data-tip={getTooltipFromStatus(lspStatus)}
-          ></div>
-          {isWebSocketConnected ? "LSP Connected" : "LSP Disconnected"}
-        </button> */}
-        &nbsp;
         <RainbowKitCustomConnectButton />
-        <FaucetButton />
       </div>
     </div>
   );
 };
+
+/**
+ * Site header
+ */
+export const Header = dynamic(() => Promise.resolve(HeaderContent), { ssr: false });
