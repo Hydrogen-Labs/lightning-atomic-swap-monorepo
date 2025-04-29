@@ -5,6 +5,7 @@ import {
   InitiationResponse,
   InvoiceResponse,
   KIND,
+  ProviderConfig,
   ServerResponse,
   ServerStatus,
 } from "@lightning-evm-bridge/shared";
@@ -16,6 +17,7 @@ export const useWebSocket = (url: string) => {
   const [error, setError] = useState<Event | null>(null);
   const [uuid, setUuid] = useState<string>("");
   const [signerActive, setSignerActive] = useState<boolean>(true);
+  const [serverConfig, setServerConfig] = useState<ProviderConfig | null>(null);
   const [lnInitationResponse, setLnInitationResponse] = useState<InitiationResponse | null>(null);
   const [hodlInvoiceResponse, setHodlInvoiceResponse] = useState<HodlInvoiceResponse | null>(null);
   const [receiveContractId, setReceiveContractId] = useState<string>("");
@@ -66,6 +68,7 @@ export const useWebSocket = (url: string) => {
           setStatus(responseData.serverStatus as ServerStatus);
           setUuid(responseData.uuid);
           setSignerActive(responseData.signerActive);
+          setServerConfig(responseData.serverConfig);
           return;
         }
         if (responseData && "status" in responseData) {
@@ -135,7 +138,8 @@ export const useWebSocket = (url: string) => {
     lnInitationResponse,
     uuid,
     signerActive,
-    receiveContractId: receiveContractId,
+    receiveContractId,
     hodlInvoiceResponse,
+    serverConfig,
   };
 };

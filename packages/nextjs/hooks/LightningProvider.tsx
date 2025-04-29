@@ -6,6 +6,7 @@ import {
   HodlInvoiceResponse,
   InitiationResponse,
   InvoiceResponse,
+  ProviderConfig,
   ServerStatus,
 } from "@lightning-evm-bridge/shared";
 import { ToastContainer } from "react-toastify";
@@ -39,6 +40,7 @@ export type LightningAppContextType = {
   hashLock: HashLock | null;
   setHashLock: (hashLock: HashLock) => void;
   receiveContractId: string;
+  serverConfig: ProviderConfig | null;
 };
 
 // Create the context
@@ -65,6 +67,7 @@ const defaultContextValues: LightningAppContextType = {
     console.warn("Provider not initialized yet");
   },
   receiveContractId: "",
+  serverConfig: null,
 };
 
 // Provider component
@@ -89,6 +92,7 @@ export const LightningProvider = ({ children }: { children: React.ReactNode }) =
     receiveContractId,
     hodlInvoiceResponse,
     signerActive,
+    serverConfig,
   } = useWebSocket(mounted ? process.env.WEBSOCKET_URL ?? "ws://localhost:3003" : "");
 
   // Don't render anything until mounted to avoid hydration mismatch
@@ -116,6 +120,7 @@ export const LightningProvider = ({ children }: { children: React.ReactNode }) =
         hashLock,
         setHashLock,
         receiveContractId,
+        serverConfig,
       }}
     >
       {children}

@@ -37,6 +37,8 @@ function ReceiveModal({ isOpen, onClose }: ReceiveModalProps) {
     setHashLock,
     receiveContractId,
     signerActive,
+    price,
+    serverConfig,
   } = useLightningApp();
   const [invoice, setInvoice] = useState<string>("");
   const [recipientAddress, setRecipientAddress] = useState<string>("");
@@ -290,21 +292,24 @@ function ReceiveModal({ isOpen, onClose }: ReceiveModalProps) {
                 </li>
               </ol>
 
-              {activeStep === 1 &&
-                Step1({
-                  amount,
-                  invoice,
-                  recipientAddress,
-                  signerActive,
-                  setRecipientAddress,
-                  setAmount,
-                  onClickContinue,
-                  onClickQRCode,
-                })}
+              {activeStep === 1 && (
+                <Step1
+                  amount={amount}
+                  invoice={invoice}
+                  recipientAddress={recipientAddress}
+                  signerActive={signerActive}
+                  price={price}
+                  serverConfig={serverConfig}
+                  setRecipientAddress={setRecipientAddress}
+                  setAmount={setAmount}
+                  onClickContinue={onClickContinue}
+                  onClickQRCode={onClickQRCode}
+                />
+              )}
 
-              {activeStep === 2 && Step2({ invoice, onClickQRCode })}
+              {activeStep === 2 && <Step2 invoice={invoice} onClickQRCode={onClickQRCode} />}
 
-              {activeStep === 3 && Step3({ txHash })}
+              {activeStep === 3 && <Step3 txHash={txHash} />}
             </div>
           </div>
         </div>
